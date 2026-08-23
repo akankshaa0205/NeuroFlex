@@ -48,6 +48,14 @@ def test_composite_score_formula_uses_prd_definition():
     assert np.isclose(score, expected, atol=1e-9)
 
 
+def test_composite_score_rejects_invalid_normalization_values():
+    with np.testing.assert_raises(ValueError):
+        calculate_composite_score(0.8, 12.0, 0.0, 8.0, 20.0)
+
+    with np.testing.assert_raises(ValueError):
+        calculate_composite_score(0.8, 12.0, 40.0, 8.0, 0.0)
+
+
 def test_atomic_write_json_and_csv_export(tmp_path):
     output_dir = tmp_path / "session"
     payload = {"schema_version": "1.0", "patient_id": "demo-patient", "score": 88.5}

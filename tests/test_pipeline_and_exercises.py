@@ -49,3 +49,8 @@ def test_pipeline_baseline_recording_is_1d_and_deterministic():
     result = pipeline.record_baseline(baseline)
     assert result.shape == baseline.shape
     np.testing.assert_array_equal(result, baseline)
+
+
+def test_pipeline_baseline_recording_rejects_non_1d_input():
+    with np.testing.assert_raises(ValueError):
+        RehabPipeline().record_baseline(np.zeros((2, 2)))
