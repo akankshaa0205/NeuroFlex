@@ -9,15 +9,19 @@ import numpy as np
 try:
     from mediapipe.tasks import python as mp_python
     from mediapipe.tasks.python import vision as mp_vision
+    from mediapipe.tasks.python.vision.core.image import Image, ImageFormat
 except ImportError:  # pragma: no cover - optional runtime dependency
     mp_python = None
     mp_vision = None
+    Image = None
+    ImageFormat = None
 
 
 @dataclass
 class Pose:
     joints: np.ndarray
     confidence: float = 1.0
+    source: str = "synthetic"
 
 
 class SimplePoseEstimator:
@@ -40,7 +44,7 @@ class SimplePoseEstimator:
             joints[i, 1] = y[i] * h
             joints[i, 2] = np.sin(i / 3.0) * 0.5 + 0.5
 
-        return Pose(joints=joints, confidence=0.96)
+        return Pose(joints=joints, confidence=0.96, source="synthetic")
 
 
 class MediaPipePoseEstimator:
@@ -70,14 +74,14 @@ class MediaPipePoseEstimator:
 
         height, width, _ = frame.shape
         rgb_frame = np.ascontiguousarray(frame[:, :, ::-1])
-        image = mp_python.vision.core.Image(
-            image_format=mp_python.vision.core.image.ImageFormat.SRGB,
+        image = Image(
+            image_format=ImageFormat.SRGB,
             data=rgb_frame,
         )
-        self._timestamp_ms += max(1, int(time.monotonic_ns() // 1_000_000) - self._timestamp_ms)
+        self._timestamp_ms = max(self._timestamp_ms + 1, int(time.monotonic_ns() // 1_000_000))
         result = self._pose.detect_for_video(image, self._timestamp_ms)
         if not result.pose_landmarks:
-            return Pose(joints=np.zeros((33, 3), dtype=float), confidence=0.0)
+            return Pose(joints=np.zeros((33, 3), dtype=float), confidence=0.0, source="mediapipe")
 
         landmarks = result.pose_landmarks[0]
         joints = np.array(
@@ -85,7 +89,7 @@ class MediaPipePoseEstimator:
             dtype=float,
         )
         confidence = float(np.mean([landmark.visibility for landmark in landmarks]))
-        return Pose(joints=joints, confidence=confidence)
+        return Pose(joints=joints, confidence=confidence, source="mediapipe")
 
     def close(self) -> None:
         self._pose.close()
@@ -93,6 +97,6 @@ class MediaPipePoseEstimator:
 
 def create_pose_estimator(prefer_real: bool = True) -> SimplePoseEstimator | MediaPipePoseEstimator:
     """Create a real estimator when available, otherwise use the test fallback."""
-    if prefer_real and mp is not None:
+    if prefer_real and mp_vision is not None:
         return MediaPipePoseEstimator()
     return SimplePoseEstimator(joint_count=33)

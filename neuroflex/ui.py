@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 
+try:
+    import cv2
+except ImportError:  # pragma: no cover - optional dependency
+    cv2 = None
+
 from .pose import Pose
 
 
@@ -31,5 +36,9 @@ class OverlayRenderer:
         cv = np.zeros((30, label_width, 3), dtype=np.uint8)
         cv[:] = (30, 30, 30)
         overlay[:30, :label_width] = cv
+
+        if cv2 is not None:
+            pose_label = f"POSE: {pose.source.upper()}  JOINTS: {len(pose.joints)}  CONF: {pose.confidence:.0%}"
+            cv2.putText(overlay, pose_label, (10, min(h - 10, 60)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
 
         return overlay.astype(np.uint8)

@@ -32,6 +32,7 @@ def test_pose_estimator_returns_33_joint_pose():
 
     assert pose.joints.shape == (33, 3)
     assert np.all(np.isfinite(pose.joints))
+    assert pose.source == "synthetic"
 
 
 def test_synthetic_pose_estimator_is_used_for_synthetic_stream():
